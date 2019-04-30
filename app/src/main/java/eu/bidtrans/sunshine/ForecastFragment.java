@@ -1,5 +1,6 @@
 package eu.bidtrans.sunshine;
 
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
@@ -14,6 +15,8 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
+
+import org.json.JSONException;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -44,7 +47,7 @@ public class ForecastFragment extends Fragment {
     public boolean onOptionsItemSelected(MenuItem item) {
         if (item.getItemId() == R.id.action_refresh) {
             FetchWeatherData fetchDataTask = new FetchWeatherData();
-            fetchDataTask.execute();
+            fetchDataTask.execute("RO", "077190");
             return true;
         }
         return super.onOptionsItemSelected(item);
@@ -74,11 +77,17 @@ public class ForecastFragment extends Fragment {
         inflater.inflate(R.menu.forecast_fragment, menu);
     }
 
-    private class FetchWeatherData extends AsyncTask<Void, Void, String> {
+    private class FetchWeatherData extends AsyncTask<String, Void, String[]> {
 
-        private static final String WEATHER_URL = "http://api.openweathermap.org/data/2.5/forecast/daily?q=94043&mode=json&units=metric&cnt=7&appid=";
+        private static final String WEATHER_URL = "http://api.openweathermap.org/data/2.5/forecast/daily?";
 
-        private String getWeatherData() {
+        private static final String PARAM_ZIP_CODE = "zip";
+        private static final String PARAM_MODE = "json";
+        private static final String PARAM_UNITS = "units";
+        private static final String PARAM_DAYS_COUNT = "cnt";
+        private static final String PARAM_API_KEY = "appid";
+
+        private String getWeatherData(String countryCode ,String postalCode) {
             // These two need to be declared outside the try/catch
             // so that they can be closed in the finally block.
             HttpURLConnection urlConnection = null;
@@ -88,10 +97,14 @@ public class ForecastFragment extends Fragment {
             String forecastJsonStr = null;
 
             try {
-                // Construct the URL for the OpenWeatherMap query
-                // Possible parameters are avaiable at OWM's forecast API page, at
-                // http://openweathermap.org/API#forecast
-                URL url = new URL(WEATHER_URL + BuildConfig.OPEN_WEATHER_MAP_API_KEY);
+                Uri.Builder builder = Uri.parse(WEATHER_URL).buildUpon();
+                Uri uri = builder.appendQueryParameter(PARAM_ZIP_CODE, postalCode + "," + countryCode)
+                        .appendQueryParameter(PARAM_MODE, "json")
+                        .appendQueryParameter(PARAM_UNITS, "metric")
+                        .appendQueryParameter(PARAM_DAYS_COUNT, "7")
+                        .appendQueryParameter(PARAM_API_KEY, BuildConfig.OPEN_WEATHER_MAP_API_KEY)
+                        .build();
+                URL url = new URL(uri.toString());
 
                 // Create the request to OpenWeatherMap, and open the connection
                 urlConnection = (HttpURLConnection) url.openConnection();
@@ -141,14 +154,26 @@ public class ForecastFragment extends Fragment {
         }
 
         @Override
-        protected String doInBackground(Void... voids) {
-            String data = getWeatherData();
-            return data;
+        protected String[] doInBackground(String... params) {
+            String jsonData = getWeatherData(params[0] , params[1]);
+            String[] weather = null;
+            try {
+                weather = WeatherDataParser.getWeatherDataFromJson(jsonData);
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+            return weather;
         }
 
         @Override
-        protected void onPostExecute(String s) {
-            Log.d(TAG, "data received : " + s);
+        protected void onPostExecute(String[] s) {
+            if (s != null) {
+                Log.d(TAG, "data received : ");
+                for (int i =0;i < s.length; i++) {
+                    Log.d(TAG, i + " - " + s[i]);
+                }
+            }
+
         }
     }
 }
