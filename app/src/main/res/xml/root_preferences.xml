@@ -1,0 +1,37 @@
+<androidx.preference.PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <PreferenceCategory app:title="@string/location_header">
+        <EditTextPreference
+            app:key="@string/zip_code_key"
+            app:title="@string/zip_code_title"
+            app:useSimpleSummaryProvider="true" />
+
+        <EditTextPreference
+            app:key="@string/country_code_key"
+            app:title="@string/country_code_title"
+            app:useSimpleSummaryProvider="true" />
+    </PreferenceCategory>
+
+    <PreferenceCategory app:title="@string/others_header">
+        <ListPreference
+            app:defaultValue="@string/unit_metric"
+            app:entries="@array/unit_entries"
+            app:entryValues="@array/unit_values"
+            app:key="@string/unit_key"
+            app:title="@string/unit_title"
+            app:useSimpleSummaryProvider="true" />
+
+        <!--<SwitchPreferenceCompat-->
+        <!--app:key="sync"-->
+        <!--app:title="@string/sync_title" />-->
+
+        <!--<SwitchPreferenceCompat-->
+        <!--app:dependency="sync"-->
+        <!--app:key="attachment"-->
+        <!--app:summaryOff="@string/attachment_summary_off"-->
+        <!--app:summaryOn="@string/attachment_summary_on"-->
+        <!--app:title="@string/attachment_title" />-->
+
+    </PreferenceCategory>
+
+</androidx.preference.PreferenceScreen>

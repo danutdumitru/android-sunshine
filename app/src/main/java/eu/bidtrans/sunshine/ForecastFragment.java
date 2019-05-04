@@ -1,12 +1,10 @@
 package eu.bidtrans.sunshine;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.v4.app.Fragment;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -17,6 +15,12 @@ import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
+import android.widget.Toast;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.fragment.app.Fragment;
+import androidx.preference.PreferenceManager;
 
 import org.json.JSONException;
 
@@ -27,8 +31,9 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
+
+import eu.bidtrans.sunshine.domain.Units;
 
 public class ForecastFragment extends Fragment {
     private static final String TAG = ForecastFragment.class.getSimpleName();
@@ -46,28 +51,69 @@ public class ForecastFragment extends Fragment {
         setHasOptionsMenu(true);
     }
 
+    private WeatherLocation getLocationFromSettings() {
+        WeatherLocation location = new WeatherLocation("077190", "RO");
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getContext());
+        if (prefs != null) {
+            location.setCountryCode(prefs.getString(getString(R.string.country_code_key), "RO"));
+            location.setZipCode(prefs.getString(getString(R.string.zip_code_key), "077190"));
+        }
+        return location;
+    }
+
+    private Units getUnitFromSettings() {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getContext());
+        if (prefs != null) {
+            String value = prefs.getString(getString(R.string.unit_key), Units.metric.toString());
+            return Units.fromString(value);
+        } else {
+            Log.w(TAG, "cannot read SharedPreferences");
+            return Units.metric;
+        }
+    }
+
+    private void refreshWeather() {
+        FetchWeatherData fetchDataTask = new FetchWeatherData();
+        WeatherLocation location = getLocationFromSettings();
+        Units unit = getUnitFromSettings();
+        fetchDataTask.execute(location.getCountryCode(), location.getZipCode(), unit.toString());
+    }
+
+    private void showLocationOnMap(WeatherLocation location) {
+        Uri uri = Uri.parse(String.format("geo:0,0?q=zip+%s+country+%s", location.getZipCode(), location.getCountryCode()));
+        Log.d(TAG, "showLocation - URI is " + uri.toString());
+        Intent intent = new Intent(Intent.ACTION_VIEW, uri);
+        if (intent.resolveActivity(getActivity().getPackageManager()) != null) {
+            startActivity(intent);
+        } else
+            Toast.makeText(getContext(), "Unable to find a MAP application", Toast.LENGTH_LONG).show();
+    }
+
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         if (item.getItemId() == R.id.action_refresh) {
-            FetchWeatherData fetchDataTask = new FetchWeatherData();
-            fetchDataTask.execute("RO", "077190");
+            refreshWeather();
             return true;
+        } else if (item.getItemId() == R.id.action_settings) {
+            Intent settingsIntent = new Intent(getContext(), SettingsActivity.class);
+            startActivity(settingsIntent);
+        } else if (item.getItemId() == R.id.action_map) {
+            showLocationOnMap(getLocationFromSettings());
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+        refreshWeather();
     }
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        List<String> forecastData = new ArrayList<String>(Arrays.asList("Mon 6/23 - Sunny - 31/17",
-                "Tue 6/24 - Foggy - 21/8",
-                "Wed 6/25 - Cloudy - 22/17",
-                "Thurs 6/26 - Rainy - 18/11",
-                "Fri 6/27 - Foggy - 21/10",
-                "Sat 6/28 - TRAPPED IN WEATHERSTATION - 23/18",
-                "Sun 6/29 - Sunny - 20/7"));
+        List<String> forecastData = new ArrayList<String>();
         mForecastAdapter = new ArrayAdapter<String>(this.getActivity(), R.layout.list_item_forecast, R.id.list_item_forecast_textview, forecastData);
-
         View fragment = inflater.inflate(R.layout.forecast_fragment, container, false);
         mForecastListView = (ListView) fragment.findViewById(R.id.forecast_listview);
         mForecastListView.setAdapter(mForecastAdapter);
@@ -92,6 +138,35 @@ public class ForecastFragment extends Fragment {
     @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
         inflater.inflate(R.menu.forecast_fragment, menu);
+    }
+
+    private class WeatherLocation {
+        private String zipCode;
+        private String countryCode;
+
+        public WeatherLocation(String zipCode, String countryCode) {
+            this.zipCode = zipCode;
+            this.countryCode = countryCode;
+        }
+
+        public void setZipCode(String zipCode) {
+            this.zipCode = zipCode;
+        }
+
+        public void setCountryCode(String countryCode) {
+            this.countryCode = countryCode;
+        }
+
+        public WeatherLocation() {
+        }
+
+        public String getZipCode() {
+            return zipCode;
+        }
+
+        public String getCountryCode() {
+            return countryCode;
+        }
     }
 
     private class FetchWeatherData extends AsyncTask<String, Void, String[]> {
@@ -175,9 +250,10 @@ public class ForecastFragment extends Fragment {
             if (params.length == 0)
                 return null;
             String jsonData = getWeatherData(params[0], params[1]);
+            Log.d(TAG, "json received " + jsonData);
             String[] weather = null;
             try {
-                weather = WeatherDataParser.getWeatherDataFromJson(jsonData);
+                weather = WeatherDataParser.getWeatherDataFromJson(jsonData, Units.fromString(params[2]));
             } catch (JSONException e) {
                 e.printStackTrace();
             }

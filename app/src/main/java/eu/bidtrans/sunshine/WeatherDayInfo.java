@@ -2,6 +2,8 @@ package eu.bidtrans.sunshine;
 
 import java.text.SimpleDateFormat;
 
+import eu.bidtrans.sunshine.domain.Units;
+
 public class WeatherDayInfo {
     private double minTemp, maxTemp;
     private long time;
@@ -56,17 +58,25 @@ public class WeatherDayInfo {
     /**
      * Prepare the weather high/lows for presentation.
      */
-    private String formatHighLows(double high, double low) {
+    private String formatHighLows(double high, double low, Units unit) {
         // For presentation, assume the user doesn't care about tenths of a degree.
-        long roundedHigh = Math.round(high);
-        long roundedLow = Math.round(low);
+        long roundedHigh = Math.round( transformTemperature(high, unit));
+        long roundedLow = Math.round(transformTemperature(low, unit));
 
         String highLowStr = roundedHigh + "/" + roundedLow;
         return highLowStr;
     }
 
-    @Override
-    public String toString() {
-        return getReadableDateString(time) + " - " + weather + " - " + formatHighLows(maxTemp, minTemp);
+    public String toString(Units unit) {
+        return getReadableDateString(time) + " - " + weather + " - " + formatHighLows(maxTemp, minTemp, unit);
+    }
+
+    public static double transformTemperature(double temp, Units unit) {
+        if (unit == Units.metric) {
+            return temp;
+        } else if (unit == Units.imperial) {
+            return temp * 1.8 + 32;
+        } else
+            return 0;
     }
 }

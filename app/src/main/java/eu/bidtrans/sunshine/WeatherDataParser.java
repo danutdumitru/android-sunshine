@@ -6,6 +6,8 @@ import org.json.JSONObject;
 
 import java.util.Calendar;
 
+import eu.bidtrans.sunshine.domain.Units;
+
 public class WeatherDataParser {
 
     private static final String DAYS_KEY = "list";
@@ -15,8 +17,11 @@ public class WeatherDataParser {
     private static final String TEMP_MAX_KEY = "max";
     private static final String WEATHER_DESCRIPTION_KEY = "main";
 
-    public static final String[] getWeatherDataFromJson(String forecastJsonStr)
+    public static final String[] getWeatherDataFromJson(String forecastJsonStr, Units unit)
             throws JSONException {
+        if (forecastJsonStr == null)
+            return null;
+
         JSONObject json = new JSONObject(forecastJsonStr);
         JSONArray days = json.getJSONArray(DAYS_KEY);
         WeatherDayInfo[] weatherList = new WeatherDayInfo[days.length()];
@@ -36,7 +41,7 @@ public class WeatherDataParser {
         }
         String[] result = new String[weatherList.length];
         for (int i = 0; i < weatherList.length; i++) {
-            result[i] = weatherList[i].toString();
+            result[i] = weatherList[i].toString(unit);
         }
         return result;
     }
