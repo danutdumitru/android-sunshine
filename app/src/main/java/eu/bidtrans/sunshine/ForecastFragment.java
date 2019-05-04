@@ -1,5 +1,6 @@
 package eu.bidtrans.sunshine;
 
+import android.content.Intent;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -13,6 +14,7 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 
@@ -30,6 +32,7 @@ import java.util.List;
 
 public class ForecastFragment extends Fragment {
     private static final String TAG = ForecastFragment.class.getSimpleName();
+    public static final String KEY_WEATHER = "u.bidtrans.sunshine.weather";
 
     private ArrayAdapter<String> mForecastAdapter;
     private ListView mForecastListView;
@@ -68,8 +71,22 @@ public class ForecastFragment extends Fragment {
         View fragment = inflater.inflate(R.layout.forecast_fragment, container, false);
         mForecastListView = (ListView) fragment.findViewById(R.id.forecast_listview);
         mForecastListView.setAdapter(mForecastAdapter);
+        mForecastListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+//                Toast.makeText(getContext(), String.format("You just clicked on %s", mForecastAdapter.getItem(position)), Toast.LENGTH_LONG).show();
+                startDetailActivity(mForecastAdapter.getItem(position));
+            }
+
+        });
 
         return fragment;
+    }
+
+    private void startDetailActivity(String data) {
+        Intent intent = new Intent(getActivity(), DetailActivity.class);
+        intent.putExtra(KEY_WEATHER, data);
+        startActivity(intent);
     }
 
     @Override
@@ -87,7 +104,7 @@ public class ForecastFragment extends Fragment {
         private static final String PARAM_DAYS_COUNT = "cnt";
         private static final String PARAM_API_KEY = "appid";
 
-        private String getWeatherData(String countryCode ,String postalCode) {
+        private String getWeatherData(String countryCode, String postalCode) {
             // These two need to be declared outside the try/catch
             // so that they can be closed in the finally block.
             HttpURLConnection urlConnection = null;
@@ -155,7 +172,9 @@ public class ForecastFragment extends Fragment {
 
         @Override
         protected String[] doInBackground(String... params) {
-            String jsonData = getWeatherData(params[0] , params[1]);
+            if (params.length == 0)
+                return null;
+            String jsonData = getWeatherData(params[0], params[1]);
             String[] weather = null;
             try {
                 weather = WeatherDataParser.getWeatherDataFromJson(jsonData);
@@ -168,12 +187,9 @@ public class ForecastFragment extends Fragment {
         @Override
         protected void onPostExecute(String[] s) {
             if (s != null) {
-                Log.d(TAG, "data received : ");
-                for (int i =0;i < s.length; i++) {
-                    Log.d(TAG, i + " - " + s[i]);
-                }
+                mForecastAdapter.clear();
+                mForecastAdapter.addAll(s);
             }
-
         }
     }
 }

@@ -49,7 +49,7 @@ public class WeatherDayInfo {
     private String getReadableDateString(long time) {
         // Because the API returns a unix timestamp (measured in seconds),
         // it must be converted to milliseconds in order to be converted to valid date.
-        SimpleDateFormat shortenedDateFormat = new SimpleDateFormat("EEE MMM dd");
+        SimpleDateFormat shortenedDateFormat = new SimpleDateFormat("EEE, MMM dd");
         return shortenedDateFormat.format(time);
     }
 
@@ -67,6 +67,6 @@ public class WeatherDayInfo {
 
     @Override
     public String toString() {
-        return getReadableDateString(time) + " - " + weather + formatHighLows(maxTemp, minTemp);
+        return getReadableDateString(time) + " - " + weather + " - " + formatHighLows(maxTemp, minTemp);
     }
 }

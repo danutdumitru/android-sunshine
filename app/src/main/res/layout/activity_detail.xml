@@ -3,6 +3,6 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".MainActivity"
-    android:id="@+id/main_activity">
+    tools:context=".DetailActivity"
+    android:id="@+id/detail_activity">
 </FrameLayout>
